@@ -14,6 +14,10 @@ class DatabaseFailure extends TodoFailure {
   DatabaseFailure() : super('Database failure occured');
 }
 
+class UnknownFailure extends TodoFailure {
+  UnknownFailure() : super('Unknown failure occured');
+}
+
 
 
 
