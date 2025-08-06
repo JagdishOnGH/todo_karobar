@@ -34,9 +34,9 @@ class TodoRepositoryImpl implements TodoRepository {
     try {
       await _todoDataSource.deleteTodo(TodoModel.fromTodo(todo));
       return Success(null);
-    } on AppDatabaseException catch (e){
+    } on AppDatabaseException catch (_) {
       return Failure(DatabaseFailure());
-    } catch (e){
+    } catch (_) {
       return Failure(UnknownFailure());
     }
    
@@ -47,9 +47,9 @@ class TodoRepositoryImpl implements TodoRepository {
     try {
       final todos = await _todoDataSource.getTodos(limit: limit, offset: offset);
       return Success(todos);
-    } on AppDatabaseException catch (e){
+    } on AppDatabaseException catch (_) {
       return Failure(DatabaseFailure());
-    } catch (e){
+    } catch (_) {
       return Failure(UnknownFailure());
     }
    
@@ -60,9 +60,9 @@ class TodoRepositoryImpl implements TodoRepository {
     try {
       await _todoDataSource.updateTodo(TodoModel.fromTodo(todo));
       return Success(null);
-    } on AppDatabaseException catch (e){
+    } on AppDatabaseException catch (_) {
       return Failure(DatabaseFailure());
-    } catch (e){
+    } catch (_) {
       return Failure(UnknownFailure());
     }
    
