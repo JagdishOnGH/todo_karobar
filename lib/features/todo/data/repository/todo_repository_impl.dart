@@ -20,11 +20,11 @@ class TodoRepositoryImpl implements TodoRepository {
     try {
       await _todoDataSource.addTodo(TodoModel.fromTodo(todo));
       return Success(null);
-    } on DuplicateTitleException catch (e){
+    } on DuplicateTitleException catch (_) {
       return Failure(DuplicateTitleFailure());
-    } on AppDatabaseException catch (e){
+    } on AppDatabaseException catch (_) {
       return Failure(DatabaseFailure());
-    } catch (e){
+    } catch (_) {
       return Failure(UnknownFailure());
     }
   }
