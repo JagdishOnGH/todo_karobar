@@ -6,7 +6,7 @@ import '../failure/todo_failure.dart';
 import '../repository/todo_repository.dart';
 
 
-@lazySingleton
+
 class AddTodoUsecase {
   final TodoRepository _todoRepository;
 
