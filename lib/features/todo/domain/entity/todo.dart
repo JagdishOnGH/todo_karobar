@@ -3,12 +3,14 @@
 */
 
 class Todo {
+ final int id;
   final String title;
   final String description;
   final bool completed;
   final DateTime deadline;
 
   Todo({
+    required this.id,
     required this.title,
     required this.description,
     required this.completed,
@@ -18,11 +20,12 @@ class Todo {
 
   //copyWith
   Todo copyWith({
+    int? id,
     String? title,
     String? description,
     bool? completed,
     DateTime? deadline,
   }) {
-    return Todo(title: title ?? this.title, description: description ?? this.description, completed: completed ?? this.completed, deadline: deadline ?? this.deadline);
+    return Todo(title: title ?? this.title, id: id ?? this.id, description: description ?? this.description, completed: completed ?? this.completed, deadline: deadline ?? this.deadline);
   }
 }
