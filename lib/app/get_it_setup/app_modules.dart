@@ -15,8 +15,8 @@ abstract class DatabaseModule {
   @preResolve // ensures async init during init
   Future<AppDatabase> get db => $FloorAppDatabase.databaseBuilder('app_db.db').build();
 
-  @LazySingleton(order: -1)
-  Future<TodoDao> get todoDao async => (await db).todoDao;
+  @lazySingleton
+  TodoDao getTodoDao(AppDatabase database) => database.todoDao;
 }
 
 
