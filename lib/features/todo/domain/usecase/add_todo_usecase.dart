@@ -1,8 +1,12 @@
+import 'package:injectable/injectable.dart';
+
 import '../../../../core/domain/result.dart';
 import '../entity/todo.dart';
 import '../failure/todo_failure.dart';
 import '../repository/todo_repository.dart';
 
+
+@lazySingleton
 class AddTodoUsecase {
   final TodoRepository _todoRepository;
 

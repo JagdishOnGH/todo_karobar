@@ -1,3 +1,4 @@
+import 'package:injectable/injectable.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:todo_clean_karobaar/features/todo/data/datasource/todo_datasource.dart';
 import 'package:todo_clean_karobaar/features/todo/data/model/todo_model.dart';
@@ -5,6 +6,7 @@ import 'package:todo_clean_karobaar/features/todo/data/dao/todo_dao.dart';
 import 'package:todo_clean_karobaar/features/todo/domain/entity/todo.dart';
 import 'package:todo_clean_karobaar/features/todo/domain/failure/todo_exceptions.dart';
 
+@LazySingleton(as: TodoDataSource)
 class FloorTodoDataSourceImpl implements TodoDataSource {
   final TodoDao _todoDao;
 
