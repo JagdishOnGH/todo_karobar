@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../../../../core/domain/result.dart';
 import '../../../domain/entity/todo.dart';
 import '../../../domain/failure/todo_failure.dart';
 import '../../../domain/usecase/add_todo_usecase.dart';
@@ -13,7 +14,7 @@ import '../../../domain/usecase/update_todo_usecase.dart';
 part 'todo_event.dart';
 part 'todo_state.dart';
 
-@Injectable(order: 9)
+@injectable
 class TodoBloc extends Bloc<TodoEvent, TodoState> {
   final GetTodosUsecase _getTodosUsecase;
   final AddTodoUsecase _addTodoUsecase;
@@ -29,47 +30,64 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
     this._toggleTodoUsecase,
   ) : super(TodoInitial()) {
     on<TodosFetched>(_onTodosFetched);
+    on<TodoSearchQueryChanged>(_onTodoSearchQueryChanged);
+    on<TodoFilterChanged>(_onTodoFilterChanged);
     on<TodoAdded>(_onTodoAdded);
     on<TodoUpdated>(_onTodoUpdated);
     on<TodoDeleted>(_onTodoDeleted);
     on<TodoToggled>(_onTodoToggled);
-    on<TodoSearchQueryChanged>(_onTodoSearchQueryChanged);
+    on<TodoTransientFailureConsumed>(_onTodoTransientFailureConsumed);
   }
 
-  // ... (imports) ...
+  // This helper function is the single source of truth for filtering.
+  // It takes the master list and applies the necessary filters.
+  List<Todo> _applyFilters(
+      List<Todo> todos, TodoFilter filter, String searchQuery) {
+    // 1. Apply tab filter
+    final List<Todo> tabFiltered;
+    switch (filter) {
+      case TodoFilter.pending:
+        tabFiltered = todos.where((todo) => !todo.isCompleted).toList();
+        break;
+      case TodoFilter.completed:
+        tabFiltered = todos.where((todo) => todo.isCompleted).toList();
+        break;
+      case TodoFilter.all:
+      default:
+        tabFiltered = todos;
+        break;
+    }
 
-// ...
+    // 2. Apply search query on the result of the tab filter
+    if (searchQuery.isEmpty) {
+      return tabFiltered;
+    } else {
+      final lowerCaseQuery = searchQuery.toLowerCase();
+      return tabFiltered.where((todo) {
+        return todo.title.toLowerCase().contains(lowerCaseQuery);
+      }).toList();
+    }
+  }
 
-  Future<void> _onTodosFetched(
-    TodosFetched event,
+  void _onTodoFilterChanged(
+    TodoFilterChanged event,
     Emitter<TodoState> emit,
-  ) async {
-    // When fetching fresh, clear any previous search query
-    final currentSearchQuery =
-        state is TodoLoadSuccess ? (state as TodoLoadSuccess).searchQuery : '';
+  ) {
+    final currentState = state;
+    if (currentState is TodoLoadSuccess) {
+      // Re-calculate the filtered list using the NEW filter
+      final updatedFilteredTodos = _applyFilters(
+          currentState.allTodos, // Source of truth is always allTodos
+          event.filter, // Use the new filter from the event
+          currentState.searchQuery // Keep the existing search query
+          );
 
-    emit(TodoLoadInProgress());
-    final result = await _getTodosUsecase();
-    result.fold(
-      (failure) => emit(TodoLoadFailure(failure)),
-      (todos) {
-        // If there was a search query before, re-apply it to the new list
-        if (currentSearchQuery.isNotEmpty) {
-          final filtered = todos.where((todo) {
-            return todo.title
-                .toLowerCase()
-                .contains(currentSearchQuery.toLowerCase());
-          }).toList();
-          emit(TodoLoadSuccess(
-              allTodos: todos,
-              filteredTodos: filtered,
-              searchQuery: currentSearchQuery));
-        } else {
-          emit(TodoLoadSuccess(
-              allTodos: todos, filteredTodos: todos, searchQuery: ''));
-        }
-      },
-    );
+      // Emit a new state with the new filter and the new list
+      emit(currentState.copyWith(
+        filter: event.filter,
+        filteredTodos: updatedFilteredTodos,
+      ));
+    }
   }
 
   void _onTodoSearchQueryChanged(
@@ -78,78 +96,94 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
   ) {
     final currentState = state;
     if (currentState is TodoLoadSuccess) {
-      final query = event.query.toLowerCase();
-      final filtered = currentState.allTodos.where((todo) {
-        return todo.title.toLowerCase().contains(query);
-      }).toList();
+      // Re-calculate the filtered list using the NEW search query
+      final updatedFilteredTodos = _applyFilters(
+          currentState.allTodos, // Source of truth is always allTodos
+          currentState.filter, // Keep the existing tab filter
+          event.query // Use the new query from the event
+          );
 
-      // Pass the query down to the state
+      // Emit a new state with the new query and the new list
       emit(currentState.copyWith(
-        filteredTodos: filtered,
-        searchQuery: event.query, // <-- UPDATE THE QUERY HERE
+        searchQuery: event.query,
+        filteredTodos: updatedFilteredTodos,
       ));
     }
   }
 
-// ... (rest of the bloc is the same) ...
-
-  Future<void> _onTodoAdded(
-    TodoAdded event,
+  Future<void> _onTodosFetched(
+    TodosFetched event,
     Emitter<TodoState> emit,
   ) async {
-    final result = await _addTodoUsecase(event.todo);
     final currentState = state;
+    // Preserve filters on refresh
+    final currentFilter =
+        currentState is TodoLoadSuccess ? currentState.filter : TodoFilter.all;
+    final currentQuery =
+        currentState is TodoLoadSuccess ? currentState.searchQuery : '';
 
-    if (currentState is TodoLoadSuccess) {
-      result.fold(
-        (failure) => emit(currentState.copyWith(transientFailure: failure)),
-        (_) => add(const TodosFetched()), // On success, refresh the list
-      );
-    }
+    emit(TodoLoadInProgress());
+    final result = await _getTodosUsecase();
+
+    result.fold(
+      (failure) => emit(TodoLoadFailure(failure)),
+      (todos) {
+        // After fetching new data, immediately apply the preserved filters
+        final filtered = _applyFilters(todos, currentFilter, currentQuery);
+        emit(TodoLoadSuccess(
+          allTodos: todos,
+          filteredTodos: filtered,
+          filter: currentFilter,
+          searchQuery: currentQuery,
+        ));
+      },
+    );
+  }
+
+  // All modification events should trigger a full refresh to ensure data consistency.
+  // The _onTodosFetched handler will correctly re-apply the current filters.
+  Future<void> _onTodoAdded(TodoAdded event, Emitter<TodoState> emit) async {
+    final result = await _addTodoUsecase(event.todo);
+    _handleModificationResult(result, emit);
   }
 
   Future<void> _onTodoUpdated(
-    TodoUpdated event,
-    Emitter<TodoState> emit,
-  ) async {
+      TodoUpdated event, Emitter<TodoState> emit) async {
     final result = await _updateTodoUsecase(event.todo);
-    final currentState = state;
-
-    if (currentState is TodoLoadSuccess) {
-      result.fold(
-        (failure) => emit(currentState.copyWith(transientFailure: failure)),
-        (_) => add(const TodosFetched()),
-      );
-    }
+    _handleModificationResult(result, emit);
   }
 
   Future<void> _onTodoDeleted(
-    TodoDeleted event,
-    Emitter<TodoState> emit,
-  ) async {
+      TodoDeleted event, Emitter<TodoState> emit) async {
     final result = await _deleteTodoUsecase(event.todo);
-    final currentState = state;
+    _handleModificationResult(result, emit);
+  }
 
+  Future<void> _onTodoToggled(
+      TodoToggled event, Emitter<TodoState> emit) async {
+    final result = await _toggleTodoUsecase(event.todo);
+    _handleModificationResult(result, emit);
+  }
+
+  void _handleModificationResult(
+      Result<TodoFailure, void> result, Emitter<TodoState> emit) {
+    final currentState = state;
     if (currentState is TodoLoadSuccess) {
       result.fold(
         (failure) => emit(currentState.copyWith(transientFailure: failure)),
-        (_) => add(const TodosFetched()),
+        (_) => add(const TodosFetched()), // On success, refresh the whole list
       );
     }
   }
 
-  Future<void> _onTodoToggled(
-    TodoToggled event,
+  void _onTodoTransientFailureConsumed(
+    TodoTransientFailureConsumed event,
     Emitter<TodoState> emit,
-  ) async {
-    final result = await _toggleTodoUsecase(event.todo);
+  ) {
     final currentState = state;
-
     if (currentState is TodoLoadSuccess) {
-      result.fold(
-        (failure) => emit(currentState.copyWith(transientFailure: failure)),
-        (_) => add(const TodosFetched()),
-      );
+      // Emit a copy of the current state, but explicitly clear the failure.
+      emit(currentState.copyWith(clearTransientFailure: true));
     }
   }
 }

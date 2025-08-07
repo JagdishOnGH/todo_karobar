@@ -14,91 +14,128 @@ class TodoListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: BlocListener<TodoBloc, TodoState>(
-        listener: (context, state) {
-          if (state is TodoLoadSuccess && state.transientFailure != null) {
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                SnackBar(
-                  content: Text(state.transientFailure!.value.toString()),
-                  backgroundColor: Theme.of(context).colorScheme.error,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        body: BlocListener<TodoBloc, TodoState>(
+          listener: (context, state) {
+            if (state is TodoLoadSuccess && state.transientFailure != null) {
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(
+                    content: Text(state.transientFailure!.value.toString()),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                  ),
+                );
+              context
+                  .read<TodoBloc>()
+                  .add(const TodoTransientFailureConsumed());
+            }
+          },
+          child: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return <Widget>[
+                SliverAppBar(
+                  title: const Text('My Tasks'),
+                  bottom: TabBar(
+                    onTap: (index) {
+                      final filter = TodoFilter.values[index];
+                      context.read<TodoBloc>().add(TodoFilterChanged(filter));
+                    },
+                    tabs: [
+                      _buildTab('All', TodoFilter.all),
+                      _buildTab('Pending', TodoFilter.pending),
+                      _buildTab('Completed', TodoFilter.completed),
+                    ],
+                  ),
+                  actions: <Widget>[
+                    IconButton(
+                      icon: const Icon(Icons.filter_list),
+                      onPressed: () {},
+                    ),
+                  ],
+                  floating: true,
+                  snap: true,
                 ),
-              );
-          }
-        },
-        child: CustomScrollView(
-          slivers: <Widget>[
-            SliverAppBar(
-              title: const Text('My Tasks'),
-              actions: <Widget>[
-                IconButton(
-                  icon: const Icon(Icons.filter_list),
-                  onPressed: () {
-                    // TODO: Implement filter functionality
-                  },
+                SliverPersistentHeader(
+                  delegate: SearchBarDelegate(),
+                  pinned: true,
                 ),
-              ],
-              floating: true,
-              snap: true,
-            ),
-            SliverPersistentHeader(
-              delegate: SearchBarDelegate(),
-              pinned: true,
-            ),
-            BlocBuilder<TodoBloc, TodoState>(
+              ];
+            },
+            body: BlocBuilder<TodoBloc, TodoState>(
               builder: (context, state) {
                 if (state is TodoLoadInProgress || state is TodoInitial) {
-                  return const SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator()),
-                  );
+                  return Center(child: CircularProgressIndicator());
                 }
                 if (state is TodoLoadFailure) {
-                  return SliverFillRemaining(
-                    child: AppErrorWidget(
-                        message: state.failure.value.toString(),
-                        onRetry: () =>
-                            context.read<TodoBloc>().add(const TodosFetched())),
-                  );
+                  return AppErrorWidget(
+                      message: state.failure.value.toString(),
+                      onRetry: () =>
+                          context.read<TodoBloc>().add(const TodosFetched()));
                 }
                 if (state is TodoLoadSuccess) {
                   final todos = state.filteredTodos;
                   if (todos.isEmpty) {
-                    return SliverFillRemaining(
-                      child: Center(
-                        child: state.searchQuery.isNotEmpty
-                            ? NoResultsWidget(query: state.searchQuery)
-                            : const EmptyStateWidget(),
-                      ),
+                    return Center(
+                      child: state.searchQuery.isNotEmpty
+                          ? NoResultsWidget(query: state.searchQuery)
+                          : const EmptyStateWidget(),
                     );
                   }
-                  return SliverPadding(
+                  return ListView.builder(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 10.0),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (BuildContext context, int index) {
-                          final todo = todos[index];
-                          return TodoTile(todo: todo);
-                        },
-                        childCount: todos.length,
-                      ),
-                    ),
+                        horizontal: 12.0, vertical: 8.0),
+                    itemCount: todos.length,
+                    itemBuilder: (context, index) {
+                      final todo = todos[index];
+                      return TodoTile(todo: todo);
+                    },
                   );
                 }
-                return const SliverFillRemaining(
-                  child: Center(child: Text('Something went wrong!')),
-                );
+                return Center(child: Text('Something went wrong!'));
               },
             ),
-          ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => showAddEditSheet(context),
+          child: const Icon(Icons.add),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showAddEditSheet(context),
-        child: const Icon(Icons.add),
-      ),
+    );
+  }
+
+  Widget _buildTab(String title, TodoFilter filter) {
+    return BlocBuilder<TodoBloc, TodoState>(
+      // Use buildWhen to prevent unnecessary rebuilds of the tabs
+      buildWhen: (previous, current) {
+        if (previous is! TodoLoadSuccess || current is! TodoLoadSuccess) {
+          return true;
+        }
+        // Rebuild only if the counts change
+        return previous.allTodos.length != current.allTodos.length ||
+            previous.completedTodos.length != current.completedTodos.length;
+      },
+      builder: (context, state) {
+        if (state is TodoLoadSuccess) {
+          final int count;
+          switch (filter) {
+            case TodoFilter.all:
+              count = state.allTodos.length;
+              break;
+            case TodoFilter.pending:
+              count = state.pendingTodos.length;
+              break;
+            case TodoFilter.completed:
+              count = state.completedTodos.length;
+              break;
+          }
+          return Tab(text: '$title ($count)');
+        }
+        return Tab(text: title); // Fallback
+      },
     );
   }
 }

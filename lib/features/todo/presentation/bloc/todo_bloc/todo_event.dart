@@ -60,3 +60,16 @@ class TodoSearchQueryChanged extends TodoEvent {
   @override
   List<Object> get props => [query];
 }
+
+class TodoFilterChanged extends TodoEvent {
+  final TodoFilter filter;
+
+  const TodoFilterChanged(this.filter);
+
+  @override
+  List<Object> get props => [filter];
+}
+
+class TodoTransientFailureConsumed extends TodoEvent {
+  const TodoTransientFailureConsumed();
+}
