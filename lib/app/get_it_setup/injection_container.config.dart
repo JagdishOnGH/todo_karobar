@@ -22,6 +22,7 @@ import '../../features/todo/domain/usecase/delete_todo_usecase.dart' as _i478;
 import '../../features/todo/domain/usecase/get_todos_usecase.dart' as _i1020;
 import '../../features/todo/domain/usecase/toggle_todo_usecase.dart' as _i540;
 import '../../features/todo/domain/usecase/update_todo_usecase.dart' as _i920;
+import '../../features/todo/presentation/bloc/todo_bloc/todo_bloc.dart' as _i25;
 import '../floor_setup/floor_setup.dart' as _i861;
 import 'app_modules.dart' as _i110;
 
@@ -57,6 +58,13 @@ extension GetItInjectableX on _i174.GetIt {
         () => usecaseModule.toggleTodoUsecase);
     gh.lazySingleton<_i1020.GetTodosUsecase>(
         () => usecaseModule.getTodosUsecase);
+    gh.factory<_i25.TodoBloc>(() => _i25.TodoBloc(
+          gh<_i1020.GetTodosUsecase>(),
+          gh<_i41.AddTodoUsecase>(),
+          gh<_i920.UpdateTodoUsecase>(),
+          gh<_i478.DeleteTodoUsecase>(),
+          gh<_i540.ToggleTodoUsecase>(),
+        ));
     return this;
   }
 }
