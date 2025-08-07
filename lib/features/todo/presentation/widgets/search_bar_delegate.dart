@@ -1,48 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../bloc/todo_bloc/todo_bloc.dart';
 
 class SearchBarDelegate extends SliverPersistentHeaderDelegate {
+  final TextEditingController controller = TextEditingController();
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: Theme.of(context).colorScheme.surface,
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: SearchAnchor(
-        builder: (BuildContext context, SearchController controller) {
-          return SearchBar(
-            shape: WidgetStatePropertyAll<OutlinedBorder>(
-              RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8.0),
-              ),
+        color: Theme.of(context).colorScheme.surface,
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: SearchBar(
+          shape: WidgetStatePropertyAll<OutlinedBorder>(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
             ),
-            onTapOutside: (_) {
-              FocusScope.of(context).unfocus();
-            },
-            autoFocus: false,
-            controller: controller,
-            padding: const WidgetStatePropertyAll<EdgeInsets>(
-                EdgeInsets.symmetric(horizontal: 16.0)),
-            onTap: () {
-              controller.openView();
-            },
-            onChanged: (_) {
-              controller.openView();
-              // TODO: Implement search logic
-            },
-            leading: const Icon(Icons.search),
-            hintText: 'Search tasks by title...',
-          );
-        },
-        suggestionsBuilder:
-            (BuildContext context, SearchController controller) {
-          return const <Widget>[
-            ListTile(
-              title: Text('No suggestions available'),
-            ),
-          ];
-        },
-      ),
-    );
+          ),
+          onTapOutside: (_) {
+            FocusScope.of(context).unfocus();
+          },
+          autoFocus: false,
+          controller: controller,
+          padding: const WidgetStatePropertyAll<EdgeInsets>(
+              EdgeInsets.symmetric(horizontal: 16.0)),
+          onTap: () {},
+          onChanged: (text) {
+            context.read<TodoBloc>().add(TodoSearchQueryChanged(text));
+          },
+          leading: const Icon(Icons.search),
+          hintText: 'Search tasks by title...',
+        ));
   }
 
   @override

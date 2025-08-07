@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../../domain/entity/todo.dart';
+import '../bloc/todo_bloc/todo_bloc.dart';
 import 'add_edit_bottom_sheet.dart';
 
 class TodoTile extends StatelessWidget {
@@ -30,7 +32,9 @@ class TodoTile extends StatelessWidget {
           collapsedBackgroundColor: theme.colorScheme.surfaceContainerHighest,
           backgroundColor: theme.colorScheme.surfaceContainerHighest,
           leading: IconButton(
-            onPressed: () {},
+            onPressed: () {
+              context.read<TodoBloc>().add(TodoToggled(todo));
+            },
             icon: Icon(
               todo.isCompleted
                   ? Icons.check_circle
@@ -102,7 +106,18 @@ class TodoTile extends StatelessWidget {
                                 child: const Text("Cancel"),
                               ),
                               TextButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  context
+                                      .read<TodoBloc>()
+                                      .add(TodoDeleted(todo));
+                                  Navigator.of(context).pop();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text("Task deleted"),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
                                 child: const Text("Delete"),
                               ),
                             ],

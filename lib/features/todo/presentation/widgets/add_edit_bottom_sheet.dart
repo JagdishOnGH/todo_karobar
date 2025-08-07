@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entity/todo.dart';
+import '../bloc/todo_bloc/todo_bloc.dart';
 
 class AddEditTodoBottomSheet extends StatefulWidget {
   final Todo? todo;
@@ -41,7 +43,6 @@ class _AddEditTodoBottomSheetState extends State<AddEditTodoBottomSheet> {
       lastDate: DateTime(2101),
     );
     if (pickedDate != null) {
-      // ignore: use_build_context_synchronously
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
         initialTime:
@@ -58,13 +59,6 @@ class _AddEditTodoBottomSheetState extends State<AddEditTodoBottomSheet> {
           );
         });
       }
-    }
-  }
-
-  void _saveTask() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: Dispatch TodoAdded or TodoUpdated event
-      Navigator.of(context).pop();
     }
   }
 
@@ -138,7 +132,29 @@ class _AddEditTodoBottomSheetState extends State<AddEditTodoBottomSheet> {
             ),
             const SizedBox(height: 24.0),
             ElevatedButton(
-              onPressed: _saveTask,
+              onPressed: () {
+                if (_formKey.currentState?.validate() ?? false) {
+                  final newTodo = Todo(
+                    id: widget.todo?.id ??
+                        DateTime.now().millisecondsSinceEpoch,
+                    title: _titleController.text,
+                    description: _descriptionController.text,
+                    deadline: _selectedDeadline ?? DateTime.now(),
+                    isCompleted: widget.todo?.isCompleted ?? false,
+                  );
+
+                  if (widget.todo != null) {
+                    context.read<TodoBloc>().add(
+                          TodoUpdated(newTodo),
+                        );
+                  } else {
+                    context.read<TodoBloc>().add(
+                          TodoAdded(newTodo),
+                        );
+                  }
+                  Navigator.pop(context, newTodo);
+                }
+              },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 shape: RoundedRectangleBorder(
