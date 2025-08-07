@@ -11,6 +11,7 @@ class ToggleTodoUsecase {
   ToggleTodoUsecase(this._todoRepository);
 
   Future<Result<TodoFailure, void>> call(Todo todo) async {
-    return await _todoRepository.updateTodo(todo.copyWith(completed: !todo.completed));
+    return await _todoRepository
+        .updateTodo(todo.copyWith(completed: !todo.isCompleted));
   }
 }

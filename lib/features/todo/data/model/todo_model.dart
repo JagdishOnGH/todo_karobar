@@ -9,10 +9,10 @@ import 'package:todo_clean_karobaar/features/todo/domain/entity/todo.dart';
     ),
   ],
 )
-class TodoModel  {
+class TodoModel {
   //define all properties
   @PrimaryKey()
- final int id;
+  final int id;
   @ColumnInfo(name: 'title')
   final String title;
   final String description;
@@ -25,15 +25,14 @@ class TodoModel  {
     required this.description,
     required this.completed,
     required this.deadline,
-    
-  }) ;
+  });
 
   factory TodoModel.fromTodo(Todo todo) {
-   return  TodoModel(
+    return TodoModel(
       id: todo.id,
       title: todo.title,
       description: todo.description,
-      completed: todo.completed,
+      completed: todo.isCompleted,
       deadline: todo.deadline.millisecondsSinceEpoch,
     );
   }
@@ -43,10 +42,8 @@ class TodoModel  {
       id: id,
       title: title,
       description: description,
-      completed: completed,
+      isCompleted: completed,
       deadline: DateTime.fromMillisecondsSinceEpoch(deadline),
     );
   }
-
-  
 }
