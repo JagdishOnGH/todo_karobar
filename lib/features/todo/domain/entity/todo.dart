@@ -29,7 +29,7 @@ class Todo {
         title: title ?? this.title,
         id: id ?? this.id,
         description: description ?? this.description,
-        isCompleted: completed ?? this.isCompleted,
+        isCompleted: completed ?? isCompleted,
         deadline: deadline ?? this.deadline);
   }
 }

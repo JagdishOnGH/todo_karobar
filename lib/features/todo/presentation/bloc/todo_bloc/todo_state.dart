@@ -14,6 +14,8 @@ class TodoInitial extends TodoState {}
 class TodoLoadInProgress extends TodoState {}
 
 class TodoLoadSuccess extends TodoState {
+  final bool hasReachedMax;
+
   /// The master list of all fetched todos. Should not be modified by filtering.
   final List<Todo> allTodos;
 
@@ -35,6 +37,7 @@ class TodoLoadSuccess extends TodoState {
       allTodos.where((todo) => todo.isCompleted).toList();
 
   const TodoLoadSuccess({
+    this.hasReachedMax = false,
     this.allTodos = const [],
     this.filteredTodos = const [],
     this.searchQuery = '', // <-- INITIALIZE THIS
@@ -52,6 +55,7 @@ class TodoLoadSuccess extends TodoState {
 
   TodoLoadSuccess copyWith({
     List<Todo>? allTodos,
+    bool? hasReachedMax,
     TodoFilter? filter,
     List<Todo>? filteredTodos,
     String? searchQuery, //
@@ -59,6 +63,7 @@ class TodoLoadSuccess extends TodoState {
     TodoFailure? transientFailure,
   }) {
     return TodoLoadSuccess(
+      hasReachedMax: hasReachedMax ?? this.hasReachedMax,
       allTodos: allTodos ?? this.allTodos,
       filter: filter ?? this.filter,
       filteredTodos: filteredTodos ?? this.filteredTodos,

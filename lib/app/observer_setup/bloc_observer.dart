@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 
 class SimpleBlocObserver extends BlocObserver {
@@ -9,7 +10,11 @@ class SimpleBlocObserver extends BlocObserver {
       lineLength: 80,
       colors: true,
       printEmojis: true,
-      printTime: false,
+      dateTimeFormat: (DateTime date) {
+        final String formattedDate =
+            DateFormat('yyyy-MM-dd HH:mm:ss').format(date);
+        return formattedDate;
+      },
     ),
   );
 

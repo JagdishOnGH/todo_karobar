@@ -9,8 +9,37 @@ import '../widgets/no_search_result.dart';
 import '../widgets/search_bar_delegate.dart';
 import '../widgets/todo_tile.dart';
 
-class TodoListPage extends StatelessWidget {
+class TodoListPage extends StatefulWidget {
   const TodoListPage({super.key});
+
+  @override
+  State<TodoListPage> createState() => _TodoListPageState();
+}
+
+class _TodoListPageState extends State<TodoListPage> {
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_isBottom) {
+      // Dispatch the event to fetch more todos
+      context.read<TodoBloc>().add(const MoreTodosFetched());
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    // Add a little buffer (e.g., 50 pixels) to trigger loading just before the end
+    return currentScroll >= (maxScroll * 0.9);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,10 +110,27 @@ class TodoListPage extends StatelessWidget {
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 12.0, vertical: 8.0),
-                    itemCount: todos.length,
+                    itemCount:
+                        state.hasReachedMax ? todos.length : todos.length + 1,
+                    controller: _scrollController,
                     itemBuilder: (context, index) {
+                      if (index >= todos.length) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: RepaintBoundary(
+                                child: CircularProgressIndicator()),
+                          ),
+                        );
+                      }
                       final todo = todos[index];
-                      return TodoTile(todo: todo);
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 30),
+                        child: TodoTile(
+                          key: ValueKey(todo.id),
+                          todo: todo,
+                        ),
+                      );
                     },
                   );
                 }

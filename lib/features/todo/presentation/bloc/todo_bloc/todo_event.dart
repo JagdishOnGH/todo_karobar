@@ -73,3 +73,7 @@ class TodoFilterChanged extends TodoEvent {
 class TodoTransientFailureConsumed extends TodoEvent {
   const TodoTransientFailureConsumed();
 }
+
+class MoreTodosFetched extends TodoEvent {
+  const MoreTodosFetched();
+}

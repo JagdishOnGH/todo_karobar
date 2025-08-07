@@ -16,6 +16,7 @@ part 'todo_state.dart';
 
 @injectable
 class TodoBloc extends Bloc<TodoEvent, TodoState> {
+  static const int _todosPerPage = 10;
   final GetTodosUsecase _getTodosUsecase;
   final AddTodoUsecase _addTodoUsecase;
   final UpdateTodoUsecase _updateTodoUsecase;
@@ -34,6 +35,7 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
     on<TodoFilterChanged>(_onTodoFilterChanged);
     on<TodoAdded>(_onTodoAdded);
     on<TodoUpdated>(_onTodoUpdated);
+    on<MoreTodosFetched>(_onMoreTodosFetched);
     on<TodoDeleted>(_onTodoDeleted);
     on<TodoToggled>(_onTodoToggled);
     on<TodoTransientFailureConsumed>(_onTodoTransientFailureConsumed);
@@ -53,7 +55,6 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         tabFiltered = todos.where((todo) => todo.isCompleted).toList();
         break;
       case TodoFilter.all:
-      default:
         tabFiltered = todos;
         break;
     }
@@ -123,21 +124,69 @@ class TodoBloc extends Bloc<TodoEvent, TodoState> {
         currentState is TodoLoadSuccess ? currentState.searchQuery : '';
 
     emit(TodoLoadInProgress());
-    final result = await _getTodosUsecase();
+    final result = await _getTodosUsecase(limit: _todosPerPage);
 
     result.fold(
       (failure) => emit(TodoLoadFailure(failure)),
       (todos) {
+        final hasReachedMax = todos.length < _todosPerPage;
         // After fetching new data, immediately apply the preserved filters
         final filtered = _applyFilters(todos, currentFilter, currentQuery);
+
         emit(TodoLoadSuccess(
           allTodos: todos,
           filteredTodos: filtered,
+          hasReachedMax: hasReachedMax,
           filter: currentFilter,
           searchQuery: currentQuery,
         ));
       },
     );
+  }
+
+  Future<void> _onMoreTodosFetched(
+    MoreTodosFetched event,
+    Emitter<TodoState> emit,
+  ) async {
+    final currentState = state;
+
+    if (currentState is TodoLoadSuccess) {
+      // If we are not in a success state, we can't fetch more.
+    }
+    // We only fetch more if we are in a success state and haven't reached the max.
+    if (currentState is TodoLoadSuccess && !currentState.hasReachedMax) {
+      final currentOffset = currentState.allTodos.length;
+      final result = await _getTodosUsecase(
+        limit: _todosPerPage,
+        offset: currentOffset,
+      );
+
+      result.fold(
+        (failure) {
+          // On failure, we can choose to emit a transient failure
+          emit(currentState.copyWith(transientFailure: DatabaseFailure()));
+        },
+        (newTodos) {
+          // If the fetch returns fewer items than the page size, we've reached the end.
+          final hasReachedMax = newTodos.length < _todosPerPage;
+          final updatedAllTodos = List.of(currentState.allTodos)
+            ..addAll(newTodos);
+
+          // Re-apply the current filters to the newly combined master list
+          final filtered = _applyFilters(
+            updatedAllTodos,
+            currentState.filter,
+            currentState.searchQuery,
+          );
+
+          emit(currentState.copyWith(
+            allTodos: updatedAllTodos,
+            filteredTodos: filtered,
+            hasReachedMax: hasReachedMax,
+          ));
+        },
+      );
+    }
   }
 
   // All modification events should trigger a full refresh to ensure data consistency.
