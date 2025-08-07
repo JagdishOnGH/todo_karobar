@@ -49,12 +49,6 @@ class TodoListPage extends StatelessWidget {
                       _buildTab('Completed', TodoFilter.completed),
                     ],
                   ),
-                  actions: <Widget>[
-                    IconButton(
-                      icon: const Icon(Icons.filter_list),
-                      onPressed: () {},
-                    ),
-                  ],
                   floating: true,
                   snap: true,
                 ),
