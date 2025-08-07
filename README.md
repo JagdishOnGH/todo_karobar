@@ -51,7 +51,7 @@ This separation ensures that the business logic is independent of the UI and the
 
 | All Tasks | Search | Add/Edit Task |
 | :---: | :---: | :---: |
-| ![Screenshot of the main task list](https://via.placeholder.com/300x600.png?text=All+Tasks+Screen) | ![Screenshot of the search functionality](https://via.placeholder.com/300x600.png?text=Search+Screen) | ![Screenshot of the add/edit bottom sheet](https://via.placeholder.com/300x600.png?text=Add/Edit+Screen) |
+| ![Screenshot of the main task list](https://raw.githubusercontent.com/JagdishOnGH/todo_karobar/refs/heads/main/screenshots/Screenshot_20250807_160630.png) | ![Screenshot of the search functionality](https://raw.githubusercontent.com/JagdishOnGH/todo_karobar/refs/heads/main/screenshots/Screenshot_20250807_162014.png) | ![Screenshot of the add/edit bottom sheet](https://raw.githubusercontent.com/JagdishOnGH/todo_karobar/refs/heads/main/screenshots/Screenshot_20250807_160813.png) |
 
 ## Getting Started
 
